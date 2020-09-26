@@ -1,0 +1,20 @@
+{{ $perms := `ManageServer` }}{{ $valid := false }}{{ $embed := sdict }}{{ $embed.Set "color" 643265 }}{{ $embed.Set "author" (sdict "name" .User.Username "icon_url" (.User.AvatarURL "256")) }}
+{{ if reFind $perms (exec "viewperms") }}
+	{{ $valid = true }}
+{{ end }}
+{{ if $valid }}
+    {{ $embed.Set "description" (printf "%s reseteaza rapoartele adminilor (0/2)\nmesaje\nquests" .User.Username) }}
+    {{ $s := sendMessageRetID nil (cembed $embed) }}
+    {{ range dbTopEntries "raport_adm_mesaje" 49 0 }}
+        {{ dbDel .UserID "raport_adm_mesaje" }}
+    {{ end }}
+    {{ $embed.Set "description" (printf "%s reseteaza rapoartele adminilor (1/2)\n~~mesaje~~\nquests." .User.Username) }}
+    {{ editMessage nil $s (cembed $embed) }}
+    {{ range dbTopEntries "raport_adm_quests" 49 0 }}
+        {{ dbDel .UserID "raport_adm_quests" }}
+    {{ end }}
+    {{ $embed.Set "description" (printf "%s reseteaza rapoartele adminilor (2/2)\n~~mesaje~~\n~~quests~~\nToate rapoartele au fost resetate cu succes!" .User.Username) }}
+    {{ editMessage nil $s (cembed $embed) }}
+{{ else }}
+    {{ $embed.Set "description" (printf "Ai nevoie de permisiunea `%s` pentru a folosi aceasta comanda" $perms) }}
+{{ end }}

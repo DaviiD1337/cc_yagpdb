@@ -1,0 +1,52 @@
+{{$embed := sdict}}
+{{ if eq (len .CmdArgs) 1 }}
+	{{ $out := cslice }}{{ $valid := false }}{{ $out2 := cslice }}{{ $user := 0 }}{{$perms := `ManageRoles`}}{{ $id := cslice 615548591146270730 608655108766433282 }}
+	{{ with (index .CmdArgs 0) }}
+		{{ $user = reFindAll `\d+` . }}
+		{{ $user = index $user 0 | toInt }} 
+		{{ $valid = true }} 
+	{{ end }}
+    {{ if reFind $perms (exec "viewperms") }}
+	    {{ if $valid }}
+		    {{ with dbGet 0 "stafflist" }}
+		        {{ $out = $out.AppendSlice .Value }}
+		    {{ end }}
+			{{ if reFind `\?addstaff` (lower .Cmd) }}
+				{{ if (getMember $user) }} 
+					{{ if not (in $out $user) }}
+						{{ $out = $out.Append $user }}
+						{{ dbSet 0 "stafflist" $out }}
+						{{ $embed.Set "description" (printf "<@!%s> a fost adaugat in stafflist cu succes!" (str $user)) }}
+                        {{ range $id }}
+                            {{ giveRoleID $user . }}
+                        {{ end }}
+					{{ else }}
+						{{ $embed.Set "description" (printf "<@!%s> este deja in stafflist!" (str $user)) }}
+					{{ end }}
+				{{ else }} 
+					{{ $embed.Set "description" (printf "<@!%s> cu ID `%s` nu este pe server deci nu poate fi adaugat in stafflist" (str $user) (str $user) )}}
+				{{ end }} 
+				{{ else if (reFind `\?removestaff` (lower .Cmd)) }}
+					{{ if in $out $user }}
+						{{ range $k, $v := $out }}
+							{{ if eq $v $user }}
+								{{ $embed.Set "description" (printf "<@!%s> a fost scos din stafflist cu succes!" (str $user)) }}
+                                {{ range $id }}
+                                    {{ takeRoleID $user . }}
+                                {{ end }}
+							{{ else }}
+								{{ $out2 = $out2.Append . }}
+							{{ end }}
+						{{ dbSet 0 "stafflist" $out2 }}
+						{{ end }}
+					{{ else }}
+					{{ $embed.Set "description" (printf "<@!%s> nu este in stafflist!" (str $user)) }}
+					{{ end }}
+				{{ end }}
+		{{ else }}
+			{{ $embed.Set "description" (printf "Sintaxa: `%s <User:ID/Mention>" .Cmd) }}
+        {{ end }}
+    {{ else }}
+        {{ $embed.Set "description" (printf "<:cross:705738821110595607> Ai nevoie de permisiunea `%s` pentru a adauga/scoate din stafflist." $perms) }}
+    {{ end }}
+{{ end }}

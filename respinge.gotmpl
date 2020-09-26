@@ -1,0 +1,32 @@
+{{ $perms := `ManageRoles` }}{{ $reason := "" }}{{ $valid := false }}{{ $msg := 0 }}{{ $ups := 0 }}{{ $downs := 0 }}{{ $c := 701115914472652860 }}{{ $h := 609768899822616606 }}{{ $gm := "" }}{{ $m := 0 }}{{ $u := 0 }}
+{{ $a := parseArgs 1 "**[ DZ ]** Sintaxa: ?accepta|?respinge <msgid> <*Motiv>" (carg "int" "msg id") (carg "string" "motiv") }}
+{{ if reFind $perms (exec "viewperms") }}
+    {{ $msg = $a.Get 0  }}
+    {{ $gm = getMessage $c $msg }}
+    {{ if $gm }}
+	    {{ if $gm }}
+		    {{ if $gm.Embeds }}
+			    {{ $gm = index $gm.Embeds 0 }}
+			    {{ with reFindAllSubmatches `\d+` $gm.Footer.Text }}
+				    {{ $u = index (index . 0) 0 }}
+				    {{ $m = index (index . 1) 0 | toInt }}
+			    {{ end }}
+		    {{ end }}
+	    {{ end }}
+    {{ end }}
+    {{ if reFind `respinge` (lower .Cmd) }}
+        {{ if $a.IsSet 1 }}
+            {{ $reason = $a.Get 1 }}
+            {{ editMessage nil $msg (cembed
+            "author" (sdict "name" $gm.Author.Name "icon_url" $gm.Author.IconURL)
+            "description" $gm.Description
+            "footer" (sdict "text" (print "Cerere respinsa de catre: " .User.Username "\nMotiv: " $reason))
+            "timestamp" currentTime)}}
+        {{ else }}
+            **[ DZ ]** Trebuie setat un motiv!
+            {{ deleteResponse }}
+        {{ end }}
+    {{ else if reFind `accepta` (lower .Cmd) }}
+        Cerere acceptata
+    {{ end }}
+{{ end }}

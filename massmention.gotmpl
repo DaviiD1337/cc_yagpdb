@@ -1,0 +1,16 @@
+{{ if not (dbGet 0 "cooldown_mention")}}
+    {{ dbSetExpire 0 "cooldown_mention" 20 }}
+    {{ $user := 0 }}
+    {{ with .Message.Mentions }}
+	    {{ $user = index . 0 | userArg }}
+    {{ end }}
+    {{ if $user }}
+	    {{ range seq 0 5 }}
+	    	{{ sendMessageNoEscape nil $user.Mention }}
+	    {{ end }}
+    {{ else }}
+	    **[ DZ ]** Utilizator invalid !
+    {{ end }}
+{{ else }}
+    **[ DZ ]** Comanda este in cooldown inca {{ humanizeDurationSeconds ((dbGet 0 "cooldown_mention").ExpiresAt).Sub currentTime}}
+{{ end }}

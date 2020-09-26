@@ -1,0 +1,60 @@
+{{ $perms := `ManageRoles` }}{{ $reason := "" }}{{ $embed := "" }}{{ $valid := false }}{{ $msg := 0 }}{{ $ups := 0 }}{{ $downs := 0 }}{{ $c := 701115914472652860 }}{{ $staffroles := cslice 608655108766433282 615548591146270730 }}{{ $h := 609768899822616606 }}{{ $gm := "" }}{{ $m := 0 }}{{ $u := 0 }}
+{{ $a := parseArgs 1 "**[ DZ ]** Sintaxa: ?accepta|?respinge <msgid> <*Motiv>" (carg "int" "msg id") (carg "string" "motiv") }}
+{{ if reFind $perms (exec "viewperms") }}
+    {{ $msg = $a.Get 0  }}
+    {{ $gm = getMessage $c $msg }}
+    {{ if $gm }}
+		{{ if $gm.Embeds }}
+            {{ range $gm.Reactions }}
+                {{ if eq .Emoji.ID 752201965642973354  }}
+                    {{ $ups = .Count }}
+                {{ else if eq .Emoji.ID 752201965634584707 }}
+                    {{ $downs = .Count }}
+                {{ end }}
+            {{ end }}
+			{{ $gm = index $gm.Embeds 0 }}
+			{{ with reFindAllSubmatches `\d+` $gm.Footer.Text }}
+				{{ $u = index (index . 0) 0 | toInt | userArg }}
+				{{ $m = index (index . 1) 0 | toInt }}
+            {{ end }}
+            {{ if reFind `respinge` (lower .Cmd) }}
+                {{ if $a.IsSet 1 }}
+                    {{ $reason = $a.Get 1 }}
+                    {{ sendMessageNoEscape 752227999310675998 (complexMessage "content" $u.Mention "embed" (cembed
+                    "author" (sdict "name" $gm.Author.Name "icon_url" $gm.Author.IconURL)
+                    "description" $gm.Description
+                    "color" 12845619
+                    "footer" (sdict "text" (print "Cerere respinsa de catre: " .User.Username "\nMotiv: " $reason "\n✔️ " (sub $ups 1) " | ❌ " (sub $downs 1)))
+                    "timestamp" currentTime)) }}
+                    {{ $embed := (cembed
+                    "author" (sdict "name" $gm.Author.Name "icon_url" $gm.Author.IconURL)
+                    "description" $gm.Description
+                    "color" 12845619
+                    "footer" (sdict "text" (print "Cerere respinsa de catre: " .User.Username "\nMotiv: " $reason "\n✔️ " (sub $ups 1) " | ❌ " (sub $downs 1)))
+                    "timestamp" currentTime) }}
+                    {{ deleteAllMessageReactions nil $msg }}
+                    {{ editMessage nil $msg $embed }}
+                {{ else }}
+                    **[ DZ ]** Trebuie setat un motiv!
+                    {{ deleteResponse }}
+                {{ end }}
+            {{ else if reFind `accepta` (lower .Cmd) }}
+                {{  $embed = (cembed 
+                "author" (sdict "name" $gm.Author.Name "icon_url" $gm.Author.IconURL)
+                "color" 40811
+                "description" $gm.Description 
+                "footer" (sdict "text" (print "Cerere acceptata de catre: " .User.Username "\n✔️ " (sub $ups 1) " | ❌ " (sub $downs 1 )))) }}
+                {{ deleteAllMessageReactions nil $msg }}
+                {{ editMessage nil $msg $embed }}
+                {{ editMessage $h $m $embed }}
+                {{ range $staffroles}}
+                    {{ giveRoleID $u.ID . }}
+                {{ end }}
+                {{ sendMessageNoEscape 609754214880641035 (complexMessage "content" $u.Mention "embed" (cembed 
+                "description" (print "Felicitari " $u.Mention ", ai fost acceptat ca si Trial Helper.\nBafta cu acest grad!")
+                "color" 34749
+                "footer" (sdict "text" (print "Pro/Contra: ✔️ " (sub $ups 1) " | ❌ " (sub $downs 1))))) }}
+            {{ end }}
+        {{ end }}
+    {{ end }}
+{{ end }}

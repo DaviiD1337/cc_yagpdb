@@ -1,0 +1,26 @@
+{{ $cuv := "" }}{{ $val := 0 }}{{ with dbGet 0 "cuvant" }}{{ $val = .Value }}{{ end }}{{ $embed := sdict }}{{ $icon := printf "https://cdn.discordapp.com/icons/%d/%s.webp" .Guild.ID .Guild.Icon }}{{ $embed.Set "footer" (sdict "text" .Guild.Name "icon_url" $icon) }}{{ $w := .ExecData | toInt }}
+{{ if not (dbGet 0 "word") }}
+	{{ if $val }}
+		{{ $c := 15 }}
+		{{ range seq 1 15 }}
+			{{ $c = sub $c 1 }}
+			{{ editMessage nil $w (cembed
+			"description" (cembed
+    			"description" (print "Un cuvant se va genera in  **" $c "** secunde!")
+                "color" 32768 
+                "footer" (sdict "text" .Guild.Name "icon_url" $icon))) }}
+			{{ sleep 1 }}
+		{{ end }}
+		{{ $cuv := index (shuffle $val) 0 }}
+		{{ $embed.Set "color" 32768 }}
+		{{ $embed.Set "description" (printf "Cine scrie primul **%s**  primeste CREDITE sau VIP 30 minute." (lower $cuv)) }}
+		{{ dbSet 0 "word" $cuv }}
+	{{ else }}
+		{{ $embed.Set "color" 16752384 }}
+		{{ $embed.Set "description" "⚠️ | O eroare a intervenit, nu sunt cuvinte puse, foloseste **?addword** sau **?removeword** pentru a adauga/scoate." }}
+	{{ end }}
+{{ else }}
+	{{ $embed.Set "color" 16752384 }}
+	{{ $embed.Set "description" (printf "⚠️ | Exista deja un cuvant, acesta este **%s**. Scrie-l ca sa primesti un premiu." (dbGet 0 "word").Value) }}
+{{ end }}
+{{ editMessage nil $w (cembed $embed) }}

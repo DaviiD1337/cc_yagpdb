@@ -1,0 +1,98 @@
+{{ $embed := sdict }}{{ $embed.Set "author" (sdict "name" .User.Username "icon_url" (.User.AvatarURL "256")) }}{{ $fields := cslice }}{{ $succ := false }}{{ $user := "" }}{{ $dbincr := 0 }}{{ $db := dbGet .User.ID "cooldown_rob"}}{{ $pronume := "a-l" }}{{ $fata := 646022424093261844 }}{{ $baiat := 646022350587953152 }}{{ $hasquest := false }}{{ $final := 0 }}{{ $questt := "" }}{{ $questno := 0 }}{{ $ended := false }}
+{{ $colors := sdict
+"win" 6729778
+"lose" 16656146
+"nothing" 2061822 }}
+{{ with .Message.Mentions }}
+	{{ $user = index . 0 | userArg }}
+	{{ if (targetHasRoleID $user.ID $fata) }}
+		{{ $pronume = "-o" }}
+	{{ else if (targetHasRoleID $user.ID $baiat) }}
+		{{ $pronume = "a-l" }}
+	{{ end }}
+{{ end }}
+{{ if $user }}
+	{{ if ne $user.ID .User.ID }}
+		{{ if not $db }}
+			{{ $chanced := randInt 101 }}
+			{{ $win := randInt 50 201 }}
+			{{ if le $chanced 20 }}
+				{{ $silent := dbIncr .User.ID "CREDITS" $win }}
+				{{ $fields = $fields.Append (sdict "name" "L-ai jefuit pe" "value" (print $user.Mention "de **" $win "** credite!\nAcum ai **" $silent "** credite.")) }}
+				{{ $succ = true }}
+				{{ $silent2 := dbIncr $user.ID "CREDITS" (mult $win -1)}}
+				{{ if lt (toInt $silent2) 0 }}
+					{{ dbSet $user.ID "CREDITS" 0 }}
+			    {{ end }}
+				{{ $embed.Set "fields" $fields }}
+				{{ $embed.Set "color" ($colors.Get "win") }}
+			{{ else if lt $chanced 50 }}
+				{{ $fields = $fields.Append (sdict "name" (print "Ai incercat s" $pronume " jefuiesti pe") "value" (print $user.Mention " si ai esuat, insa acesta te-a iertat.")) }}
+				{{ $embed.Set "fields" $fields }}
+				{{ $embed.Set "color" $colors.nothing }}
+			{{ else }}
+				{{ $s := (roundFloor (div $win 2))}}
+				{{ $silent := dbIncr .User.ID "CREDITS" (mult $s -1) }}
+				{{ $fields = $fields.Append (sdict "name" (print "Ai incercat s" $pronume " jefuiesti pe") "value" (print $user.Mention ", dar te-a prins si i-ai dat **" (toInt $s) "** credite ca sa nu te bata.\nAcum ai **" $silent "** credite.")) }}
+				{{ $embed.Set "fields" $fields }}
+				{{ $embed.Set "color" $colors.lose }}
+				{{ if lt (toInt $silent) 0 }}
+					{{ dbSet .User.ID "CREDITS" 0}}
+				{{ end }}
+				{{ $silent2 := dbIncr $user.ID "CREDITS" $s }}
+			{{ end }}
+			{{ with dbGet .User.ID "questno" }}
+                {{ if ne (printf "%T" .Value) "bool"}}
+					{{ if $succ }}
+				    	{{ $quest :=  sdict .Value }}
+				   		{{ $questno = $quest.Get "questno" }}
+						{{ if in (cslice 1 2) $questno }}
+				    		{{ $hasquest = true }}
+			    		{{ end }}
+			    		{{ if $hasquest }}
+			    			{{ $final = $quest.Get "final" | toInt }}
+			    			{{ $questt = $quest.Get "quest" }}
+			    			{{ $dbincr = dbIncr .User.ID "progres" 1 }}
+			    			{{ if eq (toInt $dbincr) $final }}
+			    				{{ $ended = true }}
+			    			{{ end }}
+		    			{{ end }}
+		    		{{ end }}
+				{{ end }}
+			{{ end }}
+			{{ if and $hasquest $succ }}
+				{{ if $ended }}
+					{{$rewards := randInt 50 150}}
+		            {{$fields = $fields.Append (sdict "name" (print "Questul lui " $.User.String) "value" (print $questt "\nProgres: **" (toInt $dbincr) "/" $final "**\nQuest Terminat, ai primit **" $rewards "** credite."))}}
+					{{$s := dbIncr $.User.ID "CREDITS" $rewards}}
+					{{$s := dbIncr $.User.ID "user_quests" 1 }}
+					{{if in (dbGet 0 "stafflist").Value $.User.ID}}
+						{{$s := dbIncr $.User.ID "raport_adm_quests" 1}}
+					{{end}}
+				{{else}}
+					{{ $fields = $fields.Append (sdict "name" (print "Questul lui " .User.Username) "value" (print $questt "\nProgres: " $dbincr "/" $final)) }}
+				{{ end }}
+            	{{ $embed.Set "fields" $fields }}
+			{{ end }}
+			{{ dbSetExpire .User.ID "cooldofwn_rob" true 300 }}
+		{{ else }}
+			{{ $output := humanizeDurationSeconds ($db.ExpiresAt.Sub currentTime) }}
+			{{$toReplace := cslice "seconds" "second" "hours" "hour" "minutes" "minute" "and"}}
+        	{{$Replace := cslice "secunde" "secunda" "ore" "ora" "minute" "minut" "si"}}
+        	{{range $k, $v := $toReplace}}
+            	{{$output = split $output . | joinStr (index $Replace $k)}}
+       		{{end}}
+			{{ $embed.Set "description" (print "⛔ | Poti folosi aceasta comanda in **" $output"**.") }}
+			{{ $embed.Set "color" $colors.nothing }}
+		{{ end }}
+	{{ else }}
+		{{ $fields = $fields.Append (sdict "name" "O eroare s-a produs!" "value" "Nu poti sa te jefuiesti pe tine :facepalm:")}}
+		{{ $embed.Set "fields" $fields }}
+		{{ $embed.Set "color" $colors.nothing }}
+	{{ end }}
+{{ else }}
+	{{ $fields = $fields.Append (sdict "name" "Sintaxa incorecta!" "value" "Sintaxa: >rob <User:Mention>") }}
+	{{ $embed.Set "fields" $fields }}
+	{{ $embed.Set "color" $colors.nothing }}
+{{ end }}
+{{ sendMessage nil (cembed $embed) }}

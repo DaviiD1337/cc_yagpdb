@@ -1,0 +1,35 @@
+{{ $db := dbGet 0 "cuvant" }}{{ $db = $db.Value }}{{ $out1 := cslice }}{{ $out2 := cslice }}{{ $action := .Cmd }}{{ $embed := sdict }}{{ $embed.Set "author" (sdict "name" .User.Username "icon_url" (.User.AvatarURL "256")) }}{{ $msg := "" }}
+{{ if reFind `ManageMessages` (exec "viewperms")}}
+    {{ if eq (lower $action) "?addword" }}
+	    {{ if eq (len .CmdArgs) 1 }}
+	    	{{ $out1 = $out1.AppendSlice $db }}
+	    	{{ $out1 = $out1.Append (str (index .CmdArgs 0)) }}
+	    	{{ $embed.Set "description" (printf "Cuvantul **%s** a fost adaugat." (index .CmdArgs 0)) }}
+	    	{{ dbSet 0 "cuvant" $out1 }}
+    	{{ else }}
+	    	{{ $embed.Set "description" (printf "Sintaxa: `%s <cuvant>`. Poti adauga maxim un cuvant per comanda." $action) }}
+	    {{ end }}
+    {{ else if eq (lower $action) "?removeword" }}
+	    {{ if eq (len .CmdArgs) 1 }}
+		    {{ range $k, $v := $db }}
+		    	{{ if ne $v (index $.CmdArgs 0) }}
+		    		{{ $out2 = $out2.Append . }}
+		    	{{ end }}
+	    	{{ end }}
+    	{{ $embed.Set "description" (printf "Cuvantul **%s** a fost scos." (index .CmdArgs 0)) }}
+	    {{ dbSet 0 "cuvant" $out2 }}
+    	{{ else }}
+	    {{ $embed.Set "description" (printf "Sintaxa: `%s <cuvant>`. Poti scoate maxim un cuvant per comanda." $action) }}
+      {{ end }}
+    {{ else if eq (lower $action) "?listword" }}
+    	{{ range (dbTopEntries "cuvant" 100 0) }}
+    		{{ $msg = print $msg "\n" . }}
+    	{{ end }}
+    	{{ if $msg }}
+    		{{ $embed.Set "description" $msg }}
+    	{{ else }}
+    		{{ $embed.Set "description" "Nici un cuvant! Adauga folosind **?addword** sau **?removeword**" }}
+    	{{ end }}
+    {{ end }}
+{{ end }}
+{{ sendMessage nil (cembed $embed) }}

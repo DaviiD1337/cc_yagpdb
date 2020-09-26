@@ -1,0 +1,18 @@
+{{$perms := "Administrator"}}
+{{if (reFind $perms (index (reFindAllSubmatches `.*\n\x60\d+\x60\n(.*)` (exec "viewperms")) 0 1))}}
+	{{$prefix := index (reFindAllSubmatches `Prefix of \x60\d+\x60: \x60(.+)\x60` (exec "prefix")) 0 1}}
+	{{$args := parseArgs 2 (print "Usage: " $prefix "cloneroles <FromUser> <ToUser>")
+		(carg "userid" "User")
+		(carg "userid" "User")}}
+{{$x := sendMessageRetID nil (cembed "author" (sdict "name" (print "Se transfera rolurile...") "icon_url" "https://cdn.discordapp.com/emojis/585829014384541716.gif"))}}
+{{$from := slice (getMember ($args.Get 0)).Roles}}
+{{$to := slice (getMember ($args.Get 1)).Roles}}
+{{$added := ""}}
+{{$removed := ""}}
+{{$t1 := (getMember 204255221017214977).Roles}}{{$yagpos := 0}}{{$yagid := 0}}{{range .Guild.Roles}}{{$id := .ID}}{{$pos := .Position}}{{$name := .Name}}{{range $t1}}{{if eq $id .}}{{if gt $pos $yagpos}}{{$yagpos = $pos}}{{$yagid = $id}}{{end}}{{end}}{{end}}{{end}}{{range .Guild.Roles}}{{$id := .ID}}{{$pos := .Position}}{{if not (eq $yagid 0)}}{{range $to}}{{if not (in $from .)}}{{if eq $id .}}{{if ge $pos $yagpos}}{{$removed = print $removed "<:excl:565142262401728512><@&" . ">\n"}}{{else}}{{$removed = print $removed "<:cross:705738821110595607><@&" . ">\n"}}{{takeRoleID ($args.Get 1) .}}{{end}}{{end}}{{end}}{{end}}{{range $from}}{{if not (in $to .)}}{{if eq $id .}}{{if ge $pos $yagpos}}{{$added = print $added "<:excl:565142262401728512><@&" . ">\n"}}{{else}}{{$added = print $added "<:checkmark:705738821425299527><@&" . ">\n"}}{{giveRoleID ($args.Get 1) .}}{{end}}{{end}}{{end}}{{end}}{{end}}{{end}}
+	{{$userfrom := userArg ($args.Get 0)}}
+	{{$userto := userArg ($args.Get 1)}}
+	{{editMessage nil $x (cembed "title" (print "Rolurile lui " $userfrom.Username " au fost transferate catre " $userto.Username) "description" (print "Toate rolurile lui " $userfrom.Mention " au fost transferate lui " $userto.Mention ".") "fields" (cslice (sdict "name" "Info" "value" "<:checkmark:705738821425299527> - Adaugat\n<:cross:705738821110595607> - Scos\n<:excl:565142262401728512> - YAGPDB nu are permisiune" "inline" false) (sdict "name" "Roluri adaugate" "value" (print $added "\uFEFF") "inline" true)))}}
+{{else}}
+	{{sendMessage nil (cembed "title" "Nu ai acces" "description" (print "<:cross:705738821110595607> Ai nevoie de permisiune `" $perms "` pentru a folosi aceasta comanda!") "color" 0xDD2E44)}}
+{{end}}

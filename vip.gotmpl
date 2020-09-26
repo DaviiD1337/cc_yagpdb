@@ -1,0 +1,56 @@
+{{ $perms := `ManageRoles` }}{{ $vip := 610509573094375444 }}{{ $valid := false }}{{ $u := 0 }}{{ $durata := 0 }}{{ $msg := "" }}{{ $motiv := "" }}{{ $vlogs := 710538700232065024 }}{{ $viplogs  := false }}
+{{ if reFind $perms (exec "viewperms") }}
+	{{ $valid = true }}
+{{ end }}
+{{ if $valid }}
+	{{ $args := parseArgs 2 "**[ DZ ]** Sintaxa: ?addvip|?removevip <user> <motiv:Text> <Optional: Durata>" (carg "user" "user") (carg "string" "string") (carg "duration" "duration") }}
+	{{ $u := $args.Get 0 }}
+    {{ $motiv = $args.Get 1 }}
+	{{ if $args.IsSet 2 }}
+		{{ $durata = humanizeDurationSeconds ($args.Get 2) }}
+		{{ $toReplace := cslice "days" "day" "seconds" "second" "hours" "hour" "minutes" "minute" "and" }}
+		{{ $Replace := cslice "zile" "zi" "secunde" "secunda" "ore" "ora" "minute" "minute" "si" }}
+		{{ range $k, $v := $toReplace }}
+			{{$durata = split $durata . | joinStr (index $Replace $k)}}
+		{{end}}
+	{{ end }}
+	{{ if reFind `\?addvip` .Cmd }}
+        {{ if not (targetHasRoleID $u.ID $vip )}}
+            {{ giveRoleID $u.ID $vip }}
+            {{ $msg = print .User.Mention " i-a dat **VIP** lui " $u.Mention }}
+		    {{ if $durata }}
+			    {{ takeRoleID $u.ID $durata }}
+			    {{ $msg = print $msg " timp de **" $durata "**." }}
+		    {{ else }}
+			    {{ $msg = print $msg " timp de **PERMANENT**" }}
+		    {{ end }}
+        {{ $viplogs = true }}
+        {{ else }}
+            {{ $msg = print .User.Mention ", **" $u.Mention "**  are deja grad **VIP**"}}
+        {{ end }}
+        {{ $msg = print $msg ", pe motivul **" $motiv "**." }}
+	{{ else if reFind `\?removevip` .Cmd }}
+		{{ if targetHasRoleID $u.ID $vip }}
+			{{ takeRoleID $u.ID $vip }}
+			{{ $msg = print .User.Mention " i-a scos gradul de **VIP** lui " $u.Mention }}
+            {{ $viplogs = true }}
+		{{ else }}
+			{{ $msg = print .User.Mention ", " $u.Mention " nu are grad **VIP**" }}
+		{{ end }}	
+        {{ $msg = print $msg ", pe motivul **" $motiv "**."}}
+	{{ end }}
+{{ else }}
+	{{ $msg = print "Ai nevoie de permisiunea `" $perms "` pentru a folosi aceasta comanda !" }}
+{{ end }}
+{{ $e := cembed
+"author" (sdict "name" .User.Username "icon_url" (.User.AvatarURL "256"))
+"description" $msg
+"color" 523253 
+"footer" (sdict "text" "VIP Acordat la:")
+"timestamp" currentTime }}
+{{ if $msg }}
+    {{ sendMessage nil $e }}
+    {{ if $viplogs }}
+        {{ sendMessage $vlogs $e }}
+    {{ end }}
+{{ end }}

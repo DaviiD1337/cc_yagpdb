@@ -1,0 +1,19 @@
+{{$utcoffset := 3}}
+{{$channel := .Channel.ID}}
+{{$version := index (reFindAllSubmatches `YAGPDB Status, version (.+)` (index (exec "yagstatus")).Title) 0 1}}
+{{$yagversion := sdict}}{{with dbGet 0 "yagversion"}}{{$yagversion = sdict .Value}}{{end}}
+{{$firsttime := ""}}
+{{if not $yagversion.version}}
+	{{$yagversion = sdict "version" "Nici o versiune anterioara" "last_update" (currentTime.Add (toDuration (mult $utcoffset .TimeHour)))}}{{$firsttime = " - Exemplu!!! "}}
+{{end}}
+{{if not (eq $yagversion.version $version)}}
+	{{sendMessage $channel (cembed
+		"fields" (cslice
+			(sdict "name" "**• Versiune:**" "value" (print "Veche: \u2004\u200A`" $yagversion.version "`\nNoua: `" $version "`") "inline" true)
+			(sdict "name" "**• Timp:**" "value" (print "Ultimul update:\n" ($yagversion.last_update.UTC.Format "📅**02.01.06** ⌚15:04") "\nDe la ultimul update a trecut: **" (humanizeDurationHours (currentTime.Sub $yagversion.last_update)) "**") "inline" true))
+		"author" (sdict "icon_url" "https://cdn.discordapp.com/emojis/708214342067421215.png" "name" (print "YAGPDB updated" $firsttime))
+		"color" 0x738BD7
+		"footer" (sdict "text" "Updateul curent la")
+		"timestamp" currentTime)}}
+	{{dbSet 0 "yagversion" (sdict "version" $version "last_update" (currentTime.Add (toDuration (mult $utcoffset .TimeHour))))}}
+{{end}}

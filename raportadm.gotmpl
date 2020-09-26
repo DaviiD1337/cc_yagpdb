@@ -1,0 +1,11 @@
+{{ $msg := "" }}{{ $col := randInt 111111 999999 }}{{ $db := dbGet 0 "stafflist" }}{{ $c := 0 }}
+{{ range $db.Value }}
+	{{ $msg = print $msg "\n" (printf "<@!%d> | `%s` -> **%d** -> **%d**" . (getMember . 0).User.Username) (or (toInt (dbGet . "raport_adm_msg").Value) 0) (or (toInt (dbGet . "raport_adm_quests").Value) 0)) }}
+	{{ $c = add $c 1 }}
+{{ end }}
+{{ sendMessage nil (cembed
+"color" $col
+"description" (print "Nume --- Mesaje --- Quests" $msg)
+"title" (printf "Activitatea staff pentru serverul %s" .Guild.Name)
+"footer" (sdict "text" (printf "%d din %d" $c (len $db.Value)))
+"timestamp" currentTime) }}
