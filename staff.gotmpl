@@ -1,6 +1,5 @@
-{{$embed := sdict}}
+{{$embed := sdict}}{{ $newMsg := 0 }}{{ $out := cslice }}{{ $valid := false }}{{ $out2 := cslice }}{{ $user := 0 }}{{$perms := `ManageRoles`}}{{ $id := cslice 615548591146270730 608655108766433282 }}
 {{ if eq (len .CmdArgs) 1 }}
-	{{ $out := cslice }}{{ $valid := false }}{{ $out2 := cslice }}{{ $user := 0 }}{{$perms := `ManageRoles`}}{{ $id := cslice 615548591146270730 608655108766433282 }}
 	{{ with (index .CmdArgs 0) }}
 		{{ $user = reFindAll `\d+` . }}
 		{{ $user = index $user 0 | toInt }} 
@@ -8,6 +7,7 @@
 	{{ end }}
     {{ if reFind $perms (exec "viewperms") }}
 	    {{ if $valid }}
+            {{$newMsg = sendMessageRetID nil (cembed "author" (sdict "name" (print "Doar o secunda pana ce scot rolurile si il scot din database...") "icon_url" "https://cdn.discordapp.com/emojis/585829014384541716.gif"))}}
 		    {{ with dbGet 0 "stafflist" }}
 		        {{ $out = $out.AppendSlice .Value }}
 		    {{ end }}
@@ -29,17 +29,17 @@
 				{{ else if (reFind `\?removestaff` (lower .Cmd)) }}
 					{{ if in $out $user }}
 						{{ range $k, $v := $out }}
-							{{ if eq $v $user }}
-								{{ $embed.Set "description" (printf "<@!%s> a fost scos din stafflist cu succes!" (str $user)) }}
-                                {{ range $id }}
-                                    {{ takeRoleID $user . }}
-                                {{ end }}
-							{{ else }}
-								{{ $out2 = $out2.Append . }}
-							{{ end }}
-						{{ dbSet 0 "stafflist" $out2 }}
-						{{ end }}
-					{{ else }}
+							{{- if eq $v $user }}
+								{{- $embed.Set "description" (printf "<@!%s> a fost scos din stafflist cu succes!" (str $user)) }}
+                                {{- range $id }}
+                                    {{- takeRoleID $user . }}
+                                {{- end }}
+							{{- else }}
+								{{- $out2 = $out2.Append . }}
+							{{- end }}
+						{{- dbSet 0 "stafflist" $out2 }}
+						{{- end }}
+					{{- else }}
 					{{ $embed.Set "description" (printf "<@!%s> nu este in stafflist!" (str $user)) }}
 					{{ end }}
 				{{ end }}
@@ -49,4 +49,9 @@
     {{ else }}
         {{ $embed.Set "description" (printf "<:cross:705738821110595607> Ai nevoie de permisiunea `%s` pentru a adauga/scoate din stafflist." $perms) }}
     {{ end }}
+{{ end }}
+{{ if $newMsg }}
+    {{ editMessage nil $newMsg (cembed $embed) }}
+{{ else }}
+    {{ sendMessage nil (cembed $embed) }}
 {{ end }}
